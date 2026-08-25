@@ -13,8 +13,15 @@ from __future__ import annotations
 
 import os
 
+from dotenv import load_dotenv
+from langchain_core.language_models import BaseChatModel
 
-def get_llm(model: str | None = None, temperature: float = 0.0):
+# Load local development credentials without requiring every command to pass
+# ``--env-file .env``. Existing process environment variables still take priority.
+load_dotenv()
+
+
+def get_llm(model: str | None = None, temperature: float = 0.0) -> BaseChatModel:
     """Create an LLM client from environment configuration.
 
     Checks for API keys in this order:
@@ -28,7 +35,7 @@ def get_llm(model: str | None = None, temperature: float = 0.0):
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
         except ImportError as exc:
-            raise RuntimeError("Install: pip install langchain-google-genai") from exc
+            raise RuntimeError("Install the Gemini provider: uv sync --extra google") from exc
         return ChatGoogleGenerativeAI(
             model=model or os.getenv("LLM_MODEL", "gemini-2.5-flash"),
             google_api_key=os.getenv("GEMINI_API_KEY"),
@@ -37,9 +44,9 @@ def get_llm(model: str | None = None, temperature: float = 0.0):
 
     if os.getenv("OPENAI_API_KEY"):
         try:
-            from langchain_openai import ChatOpenAI
+            from langchain_openai import ChatOpenAI  # type: ignore[import-not-found]
         except ImportError as exc:
-            raise RuntimeError("Install: pip install langchain-openai") from exc
+            raise RuntimeError("Install the OpenAI provider: uv sync --extra openai") from exc
         return ChatOpenAI(
             model=model or os.getenv("LLM_MODEL", "gpt-4o-mini"),
             temperature=temperature,
@@ -47,9 +54,9 @@ def get_llm(model: str | None = None, temperature: float = 0.0):
 
     if os.getenv("ANTHROPIC_API_KEY"):
         try:
-            from langchain_anthropic import ChatAnthropic
+            from langchain_anthropic import ChatAnthropic  # type: ignore[import-not-found]
         except ImportError as exc:
-            raise RuntimeError("Install: pip install langchain-anthropic") from exc
+            raise RuntimeError("Install the Anthropic provider: uv sync --extra anthropic") from exc
         return ChatAnthropic(
             model=model or os.getenv("LLM_MODEL", "claude-sonnet-4-20250514"),
             temperature=temperature,
