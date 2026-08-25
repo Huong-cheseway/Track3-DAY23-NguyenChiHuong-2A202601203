@@ -11,6 +11,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -e '.[dev]'
-      - run: make lint
-      - run: make test
+      - run: pip install uv
+      - run: uv sync --extra dev --extra google --extra sqlite
+      - run: uv run ruff check src tests
+      - run: uv run mypy src
+      - run: uv run pytest

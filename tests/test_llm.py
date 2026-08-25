@@ -39,3 +39,17 @@ def test_get_llm_requires_a_provider_key(monkeypatch: pytest.MonkeyPatch) -> Non
 
     with pytest.raises(RuntimeError, match="No LLM API key found"):
         get_llm()
+
+
+def test_get_llm_uses_current_default_gemini_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    _clear_provider_keys(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+
+    fake_module = ModuleType("langchain_google_genai")
+    fake_module.__dict__["ChatGoogleGenerativeAI"] = FakeGeminiClient
+    monkeypatch.setitem(sys.modules, "langchain_google_genai", fake_module)
+
+    client = get_llm()
+
+    assert isinstance(client, FakeGeminiClient)
+    assert client.config["model"] == "gemini-3.6-flash"

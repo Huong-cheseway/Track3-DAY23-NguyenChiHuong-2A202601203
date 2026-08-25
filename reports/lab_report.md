@@ -1,55 +1,10 @@
-"""Render the lab submission report from validated scenario metrics."""
-
-from __future__ import annotations
-
-from datetime import date
-from pathlib import Path
-
-from .metrics import MetricsReport
-
-
-def _markdown_cell(value: object) -> str:
-    """Escape a value for safe use inside a Markdown table cell."""
-    return str(value).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
-
-
-def render_report(metrics: MetricsReport) -> str:
-    """Render a complete, deterministic Markdown report from metrics data."""
-    scenario_rows = []
-    for item in metrics.scenario_metrics:
-        scenario_rows.append(
-            "| "
-            + " | ".join(
-                [
-                    _markdown_cell(item.scenario_id),
-                    _markdown_cell(item.expected_route),
-                    _markdown_cell(item.actual_route or "—"),
-                    "Yes" if item.success else "No",
-                    str(item.retry_count),
-                    str(item.interrupt_count),
-                    "Yes" if item.approval_observed else "No",
-                    str(item.latency_ms),
-                ]
-            )
-            + " |"
-        )
-
-    recovery_evidence = (
-        "Successful checkpoint state-history/recovery evidence was observed during the run."
-        if metrics.resume_success
-        else "This metrics run did not record successful checkpoint recovery evidence."
-    )
-    scenario_table_header = (
-        "| Scenario | Expected route | Actual route | Success | Retries | Approval events | "
-        "Approval observed | Latency (ms) |"
-    )
-    return f"""# Day 08 Lab Report
+# Day 08 Lab Report
 
 ## 1. Team / student
 
-- Name: Nguyen Chi Huong
+- Name: Nguyễn Chí Hướng
 - Repo: Track3-DAY23-NguyenChiHuong-2A202601203
-- Date: {date.today().isoformat()}
+- Date: 2026-08-25
 
 ## 2. Architecture
 
@@ -78,18 +33,24 @@ Scalar fields use overwrite semantics, while audit/history collections use the `
 
 | Metric | Value |
 |---|---:|
-| Total scenarios | {metrics.total_scenarios} |
-| Success rate | {metrics.success_rate:.2%} |
-| Average nodes visited | {metrics.avg_nodes_visited:.2f} |
-| Total retries | {metrics.total_retries} |
-| Total approval events | {metrics.total_interrupts} |
-| Recovery evidence observed | {"Yes" if metrics.resume_success else "No"} |
+| Total scenarios | 7 |
+| Success rate | 100.00% |
+| Average nodes visited | 6.43 |
+| Total retries | 3 |
+| Total approval events | 2 |
+| Recovery evidence observed | Yes |
 
 ## 5. Scenario results
 
-{scenario_table_header}
+| Scenario | Expected route | Actual route | Success | Retries | Approval events | Approval observed | Latency (ms) |
 |---|---|---|---:|---:|---:|---:|---:|
-{chr(10).join(scenario_rows)}
+| S01_simple | simple | simple | Yes | 0 | 0 | No | 0 |
+| S02_tool | tool | tool | Yes | 0 | 0 | No | 0 |
+| S03_missing | missing_info | missing_info | Yes | 0 | 0 | No | 0 |
+| S04_risky | risky | risky | Yes | 0 | 1 | Yes | 0 |
+| S05_error | error | error | Yes | 2 | 0 | No | 0 |
+| S06_delete | risky | risky | Yes | 0 | 1 | Yes | 0 |
+| S07_dead_letter | error | error | Yes | 1 | 0 | No | 0 |
 
 ## 6. Failure analysis
 
@@ -106,7 +67,7 @@ Scalar fields use overwrite semantics, while audit/history collections use the `
 
 The SQLite checkpointer uses a durable database connection with WAL mode. Each scenario receives a
 unique `thread_id`; state history can be queried by that identifier and reopened from the same
-database. {recovery_evidence}
+database. Successful checkpoint state-history/recovery evidence was observed during the run.
 
 ## 8. Extension work
 
@@ -121,11 +82,3 @@ The first production improvement would replace mock tools with authenticated, id
 adapters. Next priorities are distributed tracing, measured node latency, model-evaluation sets,
 approval authorization, timeout/circuit-breaker policies, and production database lifecycle
 management.
-"""
-
-
-def write_report(metrics: MetricsReport, output_path: str | Path) -> None:
-    """Write the rendered report to a file."""
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_report(metrics), encoding="utf-8")

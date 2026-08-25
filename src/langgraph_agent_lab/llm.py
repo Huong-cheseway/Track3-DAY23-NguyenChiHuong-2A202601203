@@ -37,7 +37,7 @@ def get_llm(model: str | None = None, temperature: float = 0.0) -> BaseChatModel
         except ImportError as exc:
             raise RuntimeError("Install the Gemini provider: uv sync --extra google") from exc
         return ChatGoogleGenerativeAI(
-            model=model or os.getenv("LLM_MODEL", "gemini-2.5-flash"),
+            model=model or os.getenv("LLM_MODEL", "gemini-3.6-flash"),
             google_api_key=os.getenv("GEMINI_API_KEY"),
             temperature=temperature,
         )

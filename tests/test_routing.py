@@ -1,8 +1,4 @@
-"""Routing function tests.
-
-These tests verify correct routing logic. They will fail with NotImplementedError
-until you implement the routing functions in routing.py.
-"""
+"""Routing tests for every conditional edge and safe fallback behavior."""
 
 from langgraph_agent_lab.routing import (
     route_after_approval,

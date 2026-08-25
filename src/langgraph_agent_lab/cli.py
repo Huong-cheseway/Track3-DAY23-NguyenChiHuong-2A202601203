@@ -33,10 +33,12 @@ def run_scenarios(
     graph = build_graph(checkpointer=checkpointer)
     metrics = []
     run_id = uuid4().hex
+    last_run_config: RunnableConfig | None = None
     for scenario in scenarios:
         state = initial_state(scenario)
         state["thread_id"] = f"{state['thread_id']}-{run_id}"
         run_config: RunnableConfig = {"configurable": {"thread_id": state["thread_id"]}}
+        last_run_config = run_config
         final_state = graph.invoke(state, config=run_config)
         metrics.append(
             metric_from_state(
@@ -45,7 +47,12 @@ def run_scenarios(
                 scenario.requires_approval,
             )
         )
-    report = summarize_metrics(metrics)
+    resume_success = False
+    if cfg.get("checkpointer") == "sqlite" and last_run_config is not None:
+        history = list(graph.get_state_history(last_run_config))
+        recovered_state = graph.get_state(last_run_config)
+        resume_success = bool(history and recovered_state.values)
+    report = summarize_metrics(metrics, resume_success=resume_success)
     write_metrics(report, output)
     if cfg.get("report_path"):
         write_report(report, cfg["report_path"])
