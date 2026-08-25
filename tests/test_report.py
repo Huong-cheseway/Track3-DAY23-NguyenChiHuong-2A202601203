@@ -44,9 +44,13 @@ def test_render_report_contains_metrics_architecture_and_scenarios() -> None:
     assert "# Day 08 Lab Report" in report
     assert "Success rate | 50.00%" in report
     assert "11-node LangGraph state machine" in report
+    assert "build_graph().get_graph().draw_mermaid()" in report
+    assert "```mermaid" in report
+    assert "risky_action --> approval" in report
     assert "S01\\|simple" in report
     assert "| S02 | tool | — | No | 1 | 1 | Yes | 0 |" in report
     assert "Recovery evidence observed | Yes" in report
+    assert "53 passed" in report
 
 
 def test_render_report_does_not_claim_missing_recovery_evidence() -> None:

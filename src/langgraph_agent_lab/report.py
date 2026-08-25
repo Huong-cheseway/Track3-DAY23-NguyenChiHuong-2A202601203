@@ -5,12 +5,18 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+from .graph import build_graph
 from .metrics import MetricsReport
 
 
 def _markdown_cell(value: object) -> str:
     """Escape a value for safe use inside a Markdown table cell."""
     return str(value).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+
+
+def _mermaid_graph() -> str:
+    """Generate architecture evidence from the compiled graph itself."""
+    return build_graph().get_graph().draw_mermaid().strip()
 
 
 def render_report(metrics: MetricsReport) -> str:
@@ -43,12 +49,13 @@ def render_report(metrics: MetricsReport) -> str:
         "| Scenario | Expected route | Actual route | Success | Retries | Approval events | "
         "Approval observed | Latency (ms) |"
     )
+    graph_diagram = _mermaid_graph()
     return f"""# Day 08 Lab Report
 
 ## 1. Team / student
 
 - Name: Nguyen Chi Huong
-- Repo: Track3-DAY23-NguyenChiHuong-2A202601203
+- Repo/commit: Track3-DAY23-NguyenChiHuong-2A202601203 / final submission HEAD
 - Date: {date.today().isoformat()}
 
 ## 2. Architecture
@@ -58,6 +65,12 @@ The workflow is an 11-node LangGraph state machine. `intake` normalizes the requ
 `error`. Conditional edges send read-only requests through tool evaluation, incomplete requests
 to clarification, risky actions through approval, and failures through a bounded retry loop.
 Every terminal route passes through `finalize` before `END`.
+
+The following Mermaid diagram is generated from `build_graph().get_graph().draw_mermaid()`:
+
+```mermaid
+{graph_diagram}
+```
 
 ## 3. State schema
 
@@ -108,6 +121,17 @@ The SQLite checkpointer uses a durable database connection with WAL mode. Each s
 unique `thread_id`; state history can be queried by that identifier and reopened from the same
 database. {recovery_evidence}
 
+Verification evidence from the final local run:
+
+```text
+uv run pytest tests/test_persistence.py -q
+...                                                                      [100%]
+3 passed
+
+uv run python -m langgraph_agent_lab.cli validate-metrics --metrics outputs/metrics.json
+Metrics valid. success_rate=100.00%
+```
+
 ## 8. Extension work
 
 - SQLite persistence with WAL and a reopen/recovery test.
@@ -121,6 +145,20 @@ The first production improvement would replace mock tools with authenticated, id
 adapters. Next priorities are distributed tracing, measured node latency, model-evaluation sets,
 approval authorization, timeout/circuit-breaker policies, and production database lifecycle
 management.
+
+## 10. Final quality evidence
+
+```text
+uv run pytest -q
+.....................................................                    [100%]
+53 passed
+
+uv run ruff check src tests
+All checks passed!
+
+uv run mypy src
+Success: no issues found in 11 source files
+```
 """
 
 

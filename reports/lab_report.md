@@ -3,7 +3,7 @@
 ## 1. Team / student
 
 - Name: Nguyễn Chí Hướng
-- Repo: Track3-DAY23-NguyenChiHuong-2A202601203
+- Repo/commit: Track3-DAY23-NguyenChiHuong-2A202601203 / final submission HEAD
 - Date: 2026-08-25
 
 ## 2. Architecture
@@ -13,6 +13,52 @@ The workflow is an 11-node LangGraph state machine. `intake` normalizes the requ
 `error`. Conditional edges send read-only requests through tool evaluation, incomplete requests
 to clarification, risky actions through approval, and failures through a bounded retry loop.
 Every terminal route passes through `finalize` before `END`.
+
+The following Mermaid diagram is generated from `build_graph().get_graph().draw_mermaid()`:
+
+```mermaid
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	intake(intake)
+	classify(classify)
+	tool(tool)
+	evaluate(evaluate)
+	answer(answer)
+	clarify(clarify)
+	risky_action(risky_action)
+	approval(approval)
+	retry(retry)
+	dead_letter(dead_letter)
+	finalize(finalize)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> intake;
+	answer --> finalize;
+	approval -.-> clarify;
+	approval -.-> tool;
+	clarify --> finalize;
+	classify -.-> answer;
+	classify -.-> clarify;
+	classify -.-> retry;
+	classify -.-> risky_action;
+	classify -.-> tool;
+	dead_letter --> finalize;
+	evaluate -.-> answer;
+	evaluate -.-> retry;
+	intake --> classify;
+	retry -.-> dead_letter;
+	retry -.-> tool;
+	risky_action --> approval;
+	tool --> evaluate;
+	finalize --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+```
 
 ## 3. State schema
 
@@ -69,6 +115,17 @@ The SQLite checkpointer uses a durable database connection with WAL mode. Each s
 unique `thread_id`; state history can be queried by that identifier and reopened from the same
 database. Successful checkpoint state-history/recovery evidence was observed during the run.
 
+Verification evidence from the final local run:
+
+```text
+uv run pytest tests/test_persistence.py -q
+...                                                                      [100%]
+3 passed
+
+uv run python -m langgraph_agent_lab.cli validate-metrics --metrics outputs/metrics.json
+Metrics valid. success_rate=100.00%
+```
+
 ## 8. Extension work
 
 - SQLite persistence with WAL and a reopen/recovery test.
@@ -82,3 +139,17 @@ The first production improvement would replace mock tools with authenticated, id
 adapters. Next priorities are distributed tracing, measured node latency, model-evaluation sets,
 approval authorization, timeout/circuit-breaker policies, and production database lifecycle
 management.
+
+## 10. Final quality evidence
+
+```text
+uv run pytest -q
+.....................................................                    [100%]
+53 passed
+
+uv run ruff check src tests
+All checks passed!
+
+uv run mypy src
+Success: no issues found in 11 source files
+```
